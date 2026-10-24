@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String?
+  username     String?  @unique
+  email        String   @unique
+  phone        String?
+  password     String
+  role         String   @default("user") // "superadmin" | "admin" | "user"
+  avatar       String?  // stores avatar style+seed e.g. "adventurer:Felix"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  storageUsed  Int      @default(0)
+  storageLimit Int      @default(419430400) // 400 MB
+
+  folders      Folder[]
+  files        File[]
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  parentId  String? 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Folder?  @relation("FolderToFolder", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderToFolder")
+  files     File[]
+
+  @@unique([name, parentId, userId])
+}
+
+model File {
+  id        String   @id @default(uuid())
+  name      String
+  size      Int
+  type      String
+  path      String
+  userId    String
+  folderId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@unique([name, folderId, userId])
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  email     String?
+  phone     String?
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([phone])
+}
